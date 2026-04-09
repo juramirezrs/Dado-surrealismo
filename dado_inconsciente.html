@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>El Dado del Inconsciente</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --cream: #f5f0e8;
+    --ink: #1a1208;
+    --rust: #8b3a1a;
+    --gold: #c9a84c;
+    --deep: #2c1a4e;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background-color: var(--cream);
+    background-image:
+      radial-gradient(ellipse at 20% 10%, rgba(201,168,76,0.13) 0%, transparent 55%),
+      radial-gradient(ellipse at 80% 90%, rgba(44,26,78,0.11) 0%, transparent 55%);
+    font-family: 'Special Elite', cursive;
+    color: var(--ink);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  .clock-bg {
+    position: fixed; pointer-events: none; z-index: 0; opacity: 0.055;
+  }
+  .eye-float {
+    position: fixed; pointer-events: none; z-index: 0; opacity: 0.045;
+    animation: floatSlow 14s ease-in-out infinite;
+  }
+  @keyframes floatSlow {
+    0%,100%{transform:translateY(0) rotate(0deg);}
+    40%{transform:translateY(-18px) rotate(4deg);}
+    70%{transform:translateY(9px) rotate(-3deg);}
+  }
+
+  .header {
+    position: relative; z-index: 1;
+    text-align: center;
+    padding: 3rem 2rem 1.5rem;
+  }
+  .eyebrow {
+    font-size: 0.65rem; letter-spacing: 0.45em;
+    color: var(--rust); text-transform: uppercase;
+    display: block; margin-bottom: 1rem;
+  }
+  .main-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.8rem, 9vw, 5.5rem);
+    font-weight: 900; font-style: italic;
+    line-height: 0.88; color: var(--ink); display: inline-block;
+  }
+  .main-title span { display:block; color: var(--deep); }
+  .main-title::after {
+    content:''; display:block; width:55%; height:3px;
+    background: var(--gold); margin: 1rem auto 0;
+  }
+  .subtitle {
+    font-size: 0.8rem; letter-spacing: 0.18em;
+    color: var(--rust); margin-top: 1.1rem; opacity: 0.8;
+  }
+
+  .divider {
+    display:flex; align-items:center; justify-content:center;
+    gap:1.5rem; padding: 0.6rem 2rem; position:relative; z-index:1;
+  }
+  .divider-line {
+    flex:1; height:1px; max-width:220px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  }
+
+  .instruction {
+    position: relative; z-index:1;
+    text-align: center; padding: 0 1.5rem 2rem;
+  }
+  .instruction p {
+    font-family: 'Playfair Display', serif;
+    font-style: italic; font-size: 0.95rem;
+    line-height: 1.8; color: var(--deep);
+    max-width: 500px; margin: 0 auto;
+    opacity: 0.7;
+  }
+
+  .dice-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    max-width: 420px;
+    margin: 0 auto 2.5rem;
+    padding: 0 1.2rem;
+    position: relative; z-index:1;
+  }
+
+  .die {
+    aspect-ratio: 1;
+    border: 1.5px solid rgba(26,18,8,0.2);
+    background: rgba(245,240,232,0.6);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s, transform 0.15s, border-color 0.2s;
+    border-radius: 6px;
+    overflow: hidden;
+    user-select: none;
+  }
+  .die:hover {
+    background: rgba(245,240,232,1);
+    border-color: var(--gold);
+    transform: scale(1.04);
+    z-index: 2;
+  }
+  .die:active { transform: scale(0.97); }
+  .die.done { opacity: 0.4; border-color: rgba(26,18,8,0.08); }
+
+  .die-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.8rem; font-weight: 900; font-style: italic;
+    line-height: 1; color: var(--ink);
+  }
+  .die-icon { font-size: 1.1rem; margin-top: 4px; opacity: 0.6; }
+  .die-hint {
+    font-size: 0.5rem; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--rust);
+    opacity: 0.6; margin-top: 3px;
+  }
+  .die-tick {
+    position: absolute; top: 6px; right: 7px;
+    width: 16px; height: 16px;
+    background: var(--ink); border-radius: 50%;
+    display: none; align-items: center; justify-content: center;
+  }
+  .die.done .die-tick { display: flex; }
+  .die-tick svg { width: 9px; height: 9px; }
+
+  .progress-section {
+    max-width: 420px; margin: 0 auto 3rem;
+    padding: 0 1.2rem; position:relative; z-index:1;
+  }
+  .progress-meta {
+    display: flex; justify-content: space-between;
+    font-size: 0.68rem; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--rust); margin-bottom: 7px;
+  }
+  .progress-track { height: 3px; background: rgba(26,18,8,0.1); }
+  .progress-fill {
+    height: 100%; background: var(--gold);
+    width: 0%; transition: width 0.5s cubic-bezier(0.34,1.56,0.64,1);
+  }
+
+  .clock-deco {
+    display:flex; justify-content:center;
+    padding: 0.5rem 0; opacity: 0.12;
+    position:relative; z-index:1;
+  }
+
+  .footer {
+    text-align:center; padding: 1.5rem 1.5rem 3rem;
+    position:relative; z-index:1;
+  }
+  .footer p {
+    font-family:'Playfair Display',serif; font-style:italic;
+    font-size:0.78rem; color:var(--ink); opacity:0.3; letter-spacing:0.04em;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: var(--cream);
+    z-index: 1000;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1.5rem;
+    overflow-y: auto;
+    animation: fadeIn 0.22s ease;
+  }
+  .modal-overlay.open { display: flex; }
+
+  @keyframes fadeIn {
+    from { opacity:0; transform: scale(0.97); }
+    to   { opacity:1; transform: scale(1); }
+  }
+  .modal-overlay::before {
+    content:'';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(ellipse at 15% 15%, rgba(201,168,76,0.15) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 85%, rgba(44,26,78,0.12) 0%, transparent 50%);
+    pointer-events: none; z-index: 0;
+  }
+
+  .modal-inner {
+    position: relative; z-index: 1;
+    max-width: 560px; width: 100%;
+    text-align: center;
+  }
+
+  .modal-num-label {
+    font-size: 0.65rem; letter-spacing: 0.45em;
+    text-transform: uppercase; color: var(--rust);
+    margin-bottom: 0.5rem; display:block;
+  }
+  .modal-big-num {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(5rem, 25vw, 9rem);
+    font-weight: 900; font-style: italic;
+    line-height: 0.85; color: var(--ink); display: block;
+  }
+  .modal-big-num::after {
+    content:''; display: block; width: 50%; height: 3px;
+    background: var(--gold); margin: 1rem auto 0;
+  }
+  .modal-icon { font-size: 2.4rem; margin: 1.2rem 0 0.5rem; display:block; }
+  .modal-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 5vw, 2.4rem);
+    font-weight: 700; font-style: italic;
+    color: var(--ink); line-height: 1.1; margin-bottom: 1rem;
+  }
+  .modal-desc {
+    font-size: 0.95rem; line-height: 1.85;
+    color: rgba(26,18,8,0.72); margin-bottom: 1.2rem;
+  }
+  .modal-example {
+    font-family: 'Playfair Display', serif;
+    font-style: italic; font-size: 0.9rem;
+    color: var(--deep);
+    background: rgba(44,26,78,0.06);
+    border-left: 2px solid var(--deep);
+    padding: 0.8rem 1rem; line-height: 1.6;
+    margin-bottom: 2rem; text-align: left;
+  }
+
+  .modal-check-label {
+    display: inline-flex; align-items: center; gap: 0.7rem;
+    cursor: pointer; user-select: none; margin-bottom: 1.5rem;
+  }
+  .modal-check-label input { display: none; }
+  .modal-check-box {
+    width: 24px; height: 24px; min-width: 24px;
+    border: 1.5px solid var(--ink);
+    background: transparent; position: relative;
+    transition: background 0.2s; border-radius: 2px;
+  }
+  .modal-check-label input:checked + .modal-check-box { background: var(--ink); }
+  .modal-check-box::after {
+    content:''; position:absolute; display:none;
+    left:6px; top:3px; width:9px; height:13px;
+    border: 2px solid var(--cream);
+    border-top:none; border-left:none; transform: rotate(45deg);
+  }
+  .modal-check-label input:checked + .modal-check-box::after { display:block; }
+  .modal-check-text {
+    font-size: 0.8rem; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--ink);
+  }
+  .modal-check-label input:checked ~ .modal-check-text {
+    opacity: 0.35; text-decoration: line-through;
+  }
+
+  .modal-close {
+    display: inline-block; padding: 0.7rem 2.2rem;
+    border: 1.5px solid rgba(26,18,8,0.25);
+    background: transparent;
+    font-family: 'Special Elite', cursive;
+    font-size: 0.75rem; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--ink);
+    cursor: pointer; border-radius: 2px;
+    transition: background 0.2s, border-color 0.2s;
+  }
+  .modal-close:hover { background: rgba(26,18,8,0.07); border-color: var(--gold); }
+
+  @media (max-width:500px) {
+    .die-num { font-size: 2.3rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="clock-bg" style="width:280px;height:280px;top:-60px;left:-70px;">
+  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="100" cy="80" rx="65" ry="58" fill="none" stroke="#1a1208" stroke-width="4"/>
+    <line x1="100" y1="80" x2="100" y2="38" stroke="#1a1208" stroke-width="3"/>
+    <line x1="100" y1="80" x2="132" y2="68" stroke="#1a1208" stroke-width="2"/>
+    <path d="M 118 138 Q 96 168 88 200" fill="none" stroke="#1a1208" stroke-width="4"/>
+    <circle cx="100" cy="80" r="5" fill="#1a1208"/>
+  </svg>
+</div>
+<div class="clock-bg" style="width:220px;height:220px;bottom:80px;right:-55px;">
+  <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="100" cy="78" rx="60" ry="54" fill="none" stroke="#1a1208" stroke-width="4"/>
+    <line x1="100" y1="78" x2="118" y2="38" stroke="#1a1208" stroke-width="3"/>
+    <line x1="100" y1="78" x2="142" y2="88" stroke="#1a1208" stroke-width="2"/>
+    <path d="M 132 128 Q 152 158 148 196" fill="none" stroke="#1a1208" stroke-width="4"/>
+    <circle cx="100" cy="78" r="5" fill="#1a1208"/>
+  </svg>
+</div>
+
+<div class="eye-float" style="top:28%;left:1.5%;width:110px;">
+  <svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M5 30 Q50 2 95 30 Q50 58 5 30Z" fill="none" stroke="#1a1208" stroke-width="3"/>
+    <circle cx="50" cy="30" r="14" fill="none" stroke="#1a1208" stroke-width="3"/>
+    <circle cx="50" cy="30" r="6" fill="#1a1208"/>
+  </svg>
+</div>
+<div class="eye-float" style="top:62%;right:1.5%;width:85px;animation-delay:-6s;">
+  <svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M5 30 Q50 2 95 30 Q50 58 5 30Z" fill="none" stroke="#1a1208" stroke-width="3"/>
+    <circle cx="50" cy="30" r="14" fill="none" stroke="#1a1208" stroke-width="3"/>
+    <circle cx="50" cy="30" r="6" fill="#1a1208"/>
+  </svg>
+</div>
+
+<header class="header">
+  <span class="eyebrow">Actividad final de clase · Surrealismo</span>
+  <h1 class="main-title">El Dado<br><span>del Inconsciente</span></h1>
+  <p class="subtitle">Automatismo · Azar · Lo irracional hecho carne</p>
+</header>
+
+<div class="divider">
+  <div class="divider-line"></div>
+  <svg width="38" height="28" viewBox="0 0 40 30" xmlns="http://www.w3.org/2000/svg" opacity="0.45">
+    <ellipse cx="20" cy="12" rx="12" ry="10" fill="none" stroke="#c9a84c" stroke-width="1.5"/>
+    <line x1="20" y1="12" x2="20" y2="5" stroke="#c9a84c" stroke-width="1.5"/>
+    <line x1="20" y1="12" x2="27" y2="10" stroke="#c9a84c" stroke-width="1"/>
+    <path d="M 23 21 Q 19 27 18 30" fill="none" stroke="#c9a84c" stroke-width="1.5"/>
+  </svg>
+  <div class="divider-line"></div>
+</div>
+
+<div class="instruction">
+  <p>Lanza el dado gigante y toca el número que salió.<br>Solo tú verás qué hacer.</p>
+</div>
+
+<div class="dice-grid">
+  <div class="die" id="die-0" onclick="openModal(0)">
+    <div class="die-tick"><svg viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#f5f0e8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="die-num">1</div><div class="die-icon">💭</div><div class="die-hint">toca</div>
+  </div>
+  <div class="die" id="die-1" onclick="openModal(1)">
+    <div class="die-tick"><svg viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#f5f0e8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="die-num">2</div><div class="die-icon">⚡</div><div class="die-hint">toca</div>
+  </div>
+  <div class="die" id="die-2" onclick="openModal(2)">
+    <div class="die-tick"><svg viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#f5f0e8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="die-num">3</div><div class="die-icon">✏️</div><div class="die-hint">toca</div>
+  </div>
+  <div class="die" id="die-3" onclick="openModal(3)">
+    <div class="die-tick"><svg viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#f5f0e8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="die-num">4</div><div class="die-icon">🔮</div><div class="die-hint">toca</div>
+  </div>
+  <div class="die" id="die-4" onclick="openModal(4)">
+    <div class="die-tick"><svg viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#f5f0e8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="die-num">5</div><div class="die-icon">🌀</div><div class="die-hint">toca</div>
+  </div>
+  <div class="die" id="die-5" onclick="openModal(5)">
+    <div class="die-tick"><svg viewBox="0 0 10 8" fill="none"><path d="M1 4l3 3 5-6" stroke="#f5f0e8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+    <div class="die-num">6</div><div class="die-icon">🎭</div><div class="die-hint">toca</div>
+  </div>
+</div>
+
+<div class="progress-section">
+  <div class="progress-meta">
+    <span>Rondas jugadas</span>
+    <span id="prog-count">0 / 6</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-fill"></div>
+  </div>
+</div>
+
+<div class="clock-deco">
+  <svg width="300" height="70" viewBox="0 0 300 70" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="55" cy="26" rx="26" ry="22" fill="none" stroke="#1a1208" stroke-width="1.8"/>
+    <line x1="55" y1="26" x2="55" y2="8" stroke="#1a1208" stroke-width="1.8"/>
+    <line x1="55" y1="26" x2="71" y2="20" stroke="#1a1208" stroke-width="1.3"/>
+    <path d="M 67 45 Q 63 58 60 68" fill="none" stroke="#1a1208" stroke-width="1.8"/>
+    <circle cx="55" cy="26" r="3" fill="#1a1208"/>
+    <ellipse cx="150" cy="24" rx="30" ry="22" fill="none" stroke="#1a1208" stroke-width="1.8" transform="rotate(-6 150 24)"/>
+    <line x1="150" y1="24" x2="145" y2="6" stroke="#1a1208" stroke-width="1.8"/>
+    <line x1="150" y1="24" x2="170" y2="18" stroke="#1a1208" stroke-width="1.3"/>
+    <path d="M 135 44 Q 132 57 138 68" fill="none" stroke="#1a1208" stroke-width="1.8"/>
+    <path d="M 164 42 Q 167 55 162 68" fill="none" stroke="#1a1208" stroke-width="1.8"/>
+    <circle cx="150" cy="24" r="3" fill="#1a1208"/>
+    <ellipse cx="248" cy="27" rx="24" ry="22" fill="none" stroke="#1a1208" stroke-width="1.8"/>
+    <line x1="248" y1="27" x2="248" y2="9" stroke="#1a1208" stroke-width="1.8"/>
+    <line x1="248" y1="27" x2="263" y2="23" stroke="#1a1208" stroke-width="1.3"/>
+    <path d="M 242 48 Q 239 60 244 68" fill="none" stroke="#1a1208" stroke-width="1.8"/>
+    <circle cx="248" cy="27" r="3" fill="#1a1208"/>
+  </svg>
+</div>
+
+<footer class="footer">
+  <p>El azar es el lenguaje del inconsciente · Surrealismo · André Breton, 1924</p>
+</footer>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-inner">
+    <span class="modal-num-label" id="m-label"></span>
+    <span class="modal-big-num" id="m-num"></span>
+    <span class="modal-icon" id="m-icon"></span>
+    <h2 class="modal-title" id="m-title"></h2>
+    <p class="modal-desc" id="m-desc"></p>
+    <div class="modal-example" id="m-example"></div>
+    <label class="modal-check-label">
+      <input type="checkbox" id="m-check" onchange="handleCheck(this)">
+      <div class="modal-check-box"></div>
+      <span class="modal-check-text">Marcar como completada</span>
+    </label>
+    <br>
+    <button class="modal-close" onclick="closeModal()">← Volver al dado</button>
+  </div>
+</div>
+
+<script>
+const data = [
+  { num:'1', icon:'💭', title:'Sueño absurdo',
+    desc:'El participante inventa un sueño extraño en 10 segundos. Espontáneo, sin filtro, sin pensar demasiado.',
+    example:'«Estoy en un desierto y los relojes me hablan. Uno llora aceite y el otro me pide que lo llame mamá.»' },
+  { num:'2', icon:'⚡', title:'Asociación libre',
+    desc:'Di una palabra y el estudiante responde lo primero que se le venga a la mente. Sin lógica. Sin filtro. Sin vergüenza.',
+    example:'Tú dices: «tiempo»  →  él responde lo que sea: «caracol», «hambre», «mi abuela bailando»' },
+  { num:'3', icon:'✏️', title:'Dibujo surrealista',
+    desc:'Dibuja en el tablero (o en el aire) algo combinando dos cosas sin ninguna relación. Rápido, sin pensar.',
+    example:'«Un pez con patas humanas usando corbata, esperando el metro.»' },
+  { num:'4', icon:'🔮', title:'Interpretación loca',
+    desc:'Das un objeto o concepto simple. El participante le da un significado profundo, raro, inesperado, perturbador.',
+    example:'«Un reloj = el miedo a morir.»  /  «Una manzana = la soledad del universo.»' },
+  { num:'5', icon:'🌀', title:'Rompe la lógica',
+    desc:'Planteas algo perfectamente lógico. La persona lo vuelve absurdo, irracional, imposible. La lógica muere aquí.',
+    example:'«Los humanos caminan»  →  «Los humanos flotan porque la gravedad está cansada de trabajar.»' },
+  { num:'6', icon:'🎭', title:'Mini actuación surrealista',
+    desc:'Actúa una escena sin ningún sentido en 5–10 segundos. El cuerpo habla antes que la mente.',
+    example:'Hablar con una silla como si fuera su mamá perdida en el espacio exterior.' }
+];
+
+const done = [false,false,false,false,false,false];
+let cur = -1;
+
+function openModal(i) {
+  cur = i;
+  const d = data[i];
+  document.getElementById('m-label').textContent = 'Dado · ' + d.num;
+  document.getElementById('m-num').textContent = d.num;
+  document.getElementById('m-icon').textContent = d.icon;
+  document.getElementById('m-title').textContent = d.title;
+  document.getElementById('m-desc').textContent = d.desc;
+  document.getElementById('m-example').textContent = d.example;
+  document.getElementById('m-check').checked = done[i];
+  document.getElementById('modal').classList.add('open');
+  window.scrollTo(0,0);
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  cur = -1;
+}
+
+function handleCheck(cb) {
+  if (cur < 0) return;
+  done[cur] = cb.checked;
+  document.getElementById('die-' + cur).classList.toggle('done', cb.checked);
+  const n = done.filter(Boolean).length;
+  document.getElementById('prog-count').textContent = n + ' / 6';
+  document.getElementById('progress-fill').style.width = (n/6*100) + '%';
+}
+
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+</script>
+</body>
+</html>
